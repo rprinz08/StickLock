@@ -107,7 +107,7 @@ const Device_t config_devices[] PROGMEM = {
     {  0x1050, 0x0407, device2_name }
 };
 ```
-***NOTE***: It is possible to disable the supported devices check completely. In this case all USB HID devices will be accepted by SL. This can be done by uncommenting the line:
+**NOTE**: It is possible to disable the supported devices check completely. In this case all USB HID devices will be accepted by SL. This can be done by uncommenting the line:
 ```c
 // #define DISABLE_SUPPORTED_DEVICE_CHECKS
 ```
@@ -249,13 +249,13 @@ SL will power off itself via the used POLOLU switch after an idle timeout of 1 m
 
 SL does not include any form of mechanical actuators to perform the actual unlock actions as this depends highly on where SL will be used. Instead SL signals via J3 (SUP) and J4 (UNL) when a supported device is inserted* and when a valid key is detected.
 
-*Note: When supported device checks are disabled (**NOT RECOMENDED**) this signal will always be high.*
+**Note**: When supported device checks are disabled (**NOT RECOMENDED**) this signal will always be high.
 
 Signals SUP and UNL should be routed via different paths to actuators for additional security. Also unlock action should only be performed when both signals are high.
 
 SL contains an additional security feature - the clear switch. Pressing SW2 (clear) for more than 6 seconds **CLEARS ALL CONFIGURED KEYS**. From that moment on SL will not accept any USB device.
 
-*Note: If you use the clear feature be sure to have some other option to unlock like an additional physical lock etc. **THIS FEATURE COULD BE DANGEROUS!***
+**Note**: If you use the clear feature be sure to have some other option to unlock like an additional physical lock etc. **THIS FEATURE COULD BE DANGEROUS!**
 
 #### Example 1: YubiKey NEO static key
 
