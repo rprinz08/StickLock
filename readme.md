@@ -15,6 +15,8 @@ So I started another research, if, how and with how much effort a lock for physi
 
 Fortunately it was easy to design such a lock. The outcome is the "StickLock" (short "SL") described in this project.
 
+**Note:** Additional information can be found at https://www.min.at/prinz/sticklock
+
 ## Design
 
 ### Goals
