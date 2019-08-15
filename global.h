@@ -11,7 +11,7 @@
 // keys to EEPROM can be performed
 // Note: Normal StickLock operation is disabled when
 //       CONFIG is enabled
-#define CONFIG
+//#define CONFIG
 
 
 // ****************************************************************************
@@ -67,6 +67,7 @@
 #define UNLOCK_INDICATOR_TIME       3000
 #define ERROR_INDICATOR_TIME        1000
 #define CLEAR_SWITCH_ACCEPT         6000
+#define POWER_OFF_TIMEOUT           10000
 
 #define ERROR_INDICATOR_REPEAT      10
 
@@ -94,7 +95,7 @@ typedef unsigned long long ULL;
 #define KFT_STATIC                  0 // static key
 #define KFT_HMAC_OTP_LEN_6          2 // HMAC OTP 6 byte length
 #define KFT_HMAC_OTP_LEN_8          4 // HMAC OTP 8 byte length
-#define KFT_RESERVED                6 // reserved for future use
+#define KFT_SERIAL_NUMBER           6 // Use USB serial number as key
 
 #define COUNT_ZERO                  0ULL
 #define COUNT_MAX                   0xFFFFFFFFFFFFFFFFULL // == decimal 18446744073709551615ULL

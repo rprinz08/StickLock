@@ -215,10 +215,10 @@ void setup() {
 #ifndef DISABLE_CLEAR_SWITCH
     pinMode(CLEAR_SWITCH_PIN, INPUT);
     in_clear = false;
-#endif    
+#endif
 
-    // Set default power off to 1 minute.
-    PowerOff.Blink(1000, 60000, 1, LOW);
+    // Set default power off to 10 seconds.
+    PowerOff.Blink(1000, POWER_OFF_TIMEOUT, 1, LOW);
 
 #ifdef ENABLE_UI
     Serial.println(F("StickLock " VERSION ""));
@@ -263,14 +263,22 @@ void loop() {
     // Detect device disconnect.
     uint8_t usbState = Usb.getUsbTaskState();
     if(usbState != lastUsbState) {
-        lastUsbState = usbState;
-        if(usbState == USB_DETACHED_SUBSTATE_WAIT_FOR_DEVICE) {
+#ifdef ENABLE_UI
+        Serial.print(F("USB state: "));
+        Serial.println(usbState, HEX);
+#endif
+        if(usbState <= USB_DETACHED_SUBSTATE_WAIT_FOR_DEVICE) {
             RedLed.Off();
             GreenLed.Off();
             Lock.Reset();
-            // Power off 10 seconds after device is disconnected.
-            PowerOff.Blink(1000, 10000, 1, LOW);
+            if(lastUsbState == USB_STATE_RUNNING)
+                // Power off immediately after device is disconnected.
+                PowerOff.Blink(10, 10, 1, LOW);
+            else
+                // Power off 10 when no device connected
+                PowerOff.Blink(1000, POWER_OFF_TIMEOUT, 1, LOW);
         }
+        lastUsbState = usbState;
     }
 
     // Handle LED indicators.
@@ -288,7 +296,7 @@ void loop() {
     if(digitalRead(CLEAR_SWITCH_PIN) == LOW) {
         in_clear = false;
         clear_acc = 0;
-    }    
+    }
     else {
         if(in_clear) {
             unsigned long clear_now = millis();
@@ -297,12 +305,12 @@ void loop() {
             else
                 clear_acc += clear_now - clear_last;
             if(clear_acc >= CLEAR_SWITCH_ACCEPT) {
-#ifdef ENABLE_UI                
+#ifdef ENABLE_UI
                 Serial.println(F("*** CLEAR ***"));
-#endif                
+#endif
                 digitalWrite(RED_LED_PIN, HIGH);
                 ClearEEPROM();
-                while(true) {}                
+                while(true) {}
                 //in_clear = false;
                 //clear_acc = 0;
             }

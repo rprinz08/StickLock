@@ -7,6 +7,10 @@
 #include "eeprom.h"
 #include "hmac.h"
 #include "lock.h"
+#ifdef ENABLE_UI
+#include <usbhid.h>
+#endif
+
 
 /*
     SL, StickLock
@@ -48,23 +52,23 @@ LockHandler::LockHandler(uint8_t device_pin, uint8_t unlock_pin,
 
 void LockHandler::DeviceSupported() {
     digitalWrite(this->device_pin, HIGH);
-#ifdef DEBUG    
+#ifdef DEBUG
     Serial.println("Lock: DeviceSupported");
-#endif    
+#endif
 }
 void LockHandler::DeviceSupportedReset() {
     digitalWrite(this->device_pin, LOW);
-#ifdef DEBUG    
+#ifdef DEBUG
     Serial.println("Lock: DeviceSupportedReset");
-#endif    
+#endif
 }
 
 
 void LockHandler::KeyValid() {
     digitalWrite(this->unlock_pin, HIGH);
-#ifdef DEBUG    
+#ifdef DEBUG
     Serial.println("Lock: KeyValid");
-#endif    
+#endif
 
     counter_rolled = false;
     start = millis();
@@ -74,9 +78,9 @@ void LockHandler::KeyValid() {
 }
 void LockHandler::KeyValidReset() {
     digitalWrite(this->unlock_pin, LOW);
-#ifdef DEBUG    
+#ifdef DEBUG
     Serial.println("Lock: KeyValidReset");
-#endif    
+#endif
 
     start = next = 0;
     counter_rolled = false;
@@ -85,9 +89,9 @@ void LockHandler::KeyValidReset() {
 void LockHandler::Reset() {
     digitalWrite(this->device_pin, LOW);
     digitalWrite(this->unlock_pin, LOW);
-#ifdef DEBUG    
+#ifdef DEBUG
     Serial.println("Lock: Reset");
-#endif    
+#endif
 
     start = next = 0;
     counter_rolled = false;
@@ -130,6 +134,15 @@ void LockHandler::CheckInput(const uint8_t input_len, const char *input,
 #ifdef ENABLE_UI
     sprintf(buf, "Input: len (%d), (%s)", input_len, input);
     Serial.println(buf);
+
+    E_Notify(PSTR("Serial: len ("), 0x80);
+    Serial.print(serial_len);
+    E_Notify(PSTR(") / ("), 0x80);
+    for(int i=0; i<serial_len; i++) {
+        PrintHex<uint8_t> (serial[i], 0x80);
+        E_Notify(PSTR(" "), 0x80);
+    }
+    E_Notify(PSTR(")\r\n"), 0x80);
 #endif
 
     for(int k=0; k<key_count && !found; k++) {
@@ -163,6 +176,13 @@ void LockHandler::CheckInput(const uint8_t input_len, const char *input,
                 sprintf(buf + strlen(buf), "serial mismatch");
 #endif
                 goto NEXT_KEY;
+            }
+            else {
+                // If serial number only key
+                if((key.state & KF_KEY_TYPE) == KFT_SERIAL_NUMBER) {
+                    found = true;
+                    goto NEXT_KEY;
+                }
             }
         }
 
@@ -248,9 +268,21 @@ NEXT_KEY:
 #ifdef ENABLE_UI
         Serial.println(F("*** KEY NOT FOUND ***\r\n"));
 #endif
-        // signal invalid key, blink red LED for 10 sec, green LED off
-        RedLed.Blink(ERROR_INDICATOR_TIME, ERROR_INDICATOR_REPEAT);
-        GreenLed.Off();
+        // If only a check for Serial Number Only Key then do
+        // not indicate Key Not Found in case no serial number matches
+        // as a second run (when user presses token key for static
+        // or HOTP keys) might find a correct key
+        if(input_len > 0) {
+            // signal invalid key, blink red LED for 10 sec, green LED off
+            RedLed.Blink(ERROR_INDICATOR_TIME, ERROR_INDICATOR_REPEAT);
+            GreenLed.Off();
+        }
+        else {
+            // No Serial Only Key found - indicate waiting for other
+            // keys (static, HOTP) by 4 green flashes
+            RedLed.Off();
+            GreenLed.Blink(250, 4);
+        }
     }
 }
 

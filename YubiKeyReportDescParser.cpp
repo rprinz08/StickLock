@@ -240,8 +240,8 @@ void YubiKeyReportDescParser::OnInputItem(uint8_t itm) {
         RedLed.On();
         // green LED off
         GreenLed.Off();
-        // As long as there is USB activity initialize auto power off to 1 minute
-        PowerOff.Blink(1000, 60000, 1, LOW);
+        // As long as there is USB activity initialize auto power off to 10 seconds
+        PowerOff.Blink(1000, POWER_OFF_TIMEOUT, 1, LOW);
 
         uint8_t ch = OemToAscii(y_mod, y_scan);
 #ifdef DEBUG

@@ -75,6 +75,16 @@ static const uint8_t serial4_length = 0;
 const PROGMEM uint8_t serial4[serial4_length] = {};
 
 
+// YubiKey Serial Number Only
+static const uint8_t key5_length = 0;
+const PROGMEM uint8_t key5[key5_length] = {};
+static const uint8_t serial5_length = 20;
+const PROGMEM uint8_t serial2[serial5_length] = { // 000 1234567
+    0x30, 0x00, 0x30, 0x00, 0x30, 0x00, 0x31, 0x00, 0x32, 0x00,
+    0x33, 0x00, 0x33, 0x00, 0x34, 0x00, 0x35, 0x00, 0x36, 0x00 };
+
+
+
 // Note: when specifying counter values ensure they end with 'ULL'
 // as counters are 'unsigned long long' 64 bit values
 const Key_t config_keys[] PROGMEM = {
@@ -97,6 +107,11 @@ const Key_t config_keys[] PROGMEM = {
     { KFS_ENABLED | KFT_STATIC,
         serial4_length, serial4,
         key4_length, key4, COUNT_ZERO, ZERO_COUNTER_TOLERANCE
+    }
+    // key 5
+    { KFS_ENABLED | KFT_SERIAL_NUMBER,
+        serial5_length, serial5,
+        key4_length, key5, COUNT_ZERO, ZERO_COUNTER_TOLERANCE
     }
 };
 

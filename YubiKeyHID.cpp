@@ -135,9 +135,19 @@ CHECK_DEVICE:
 #endif
         InitDevice(&device);
         // green LED 4 times
-        GreenLed.Blink(250, 4);
         Lock.DeviceSupported();
-        PowerOff.Blink(1000, 60000, 1, LOW);
+
+        // immediately after device connect check for serial number only
+        // keys which dont need any other user intervention (like pushing
+        // a token button)
+#ifdef ENABLE_UI
+        Serial.println(F("Check Serial Only keys"));
+#endif
+        Lock.CheckInput(0, NULL,
+            DeviceSerialLength, DeviceSerial);
+
+        // Power Off 10 seconds after last activity
+        PowerOff.Blink(1000, POWER_OFF_TIMEOUT, 1, LOW);
     }
     else {
 #ifdef ENABLE_UI
@@ -151,10 +161,21 @@ CHECK_DEVICE:
     Serial.print(F("Supported device: any device accepted"));
 #endif
     // green LED 4 times
-    GreenLed.Blink(250, 4);
     Lock.DeviceSupported();
-    PowerOff.Blink(1000, 60000, 1, LOW);
+
+    // immediately after device connect check for serial number only
+    // keys which dont need any other user intervention (like pushing
+    // a token button)
+#ifdef ENABLE_UI
+    Serial.println(F("Check Serial Only keys"));
 #endif
+    Lock.CheckInput(0, NULL,
+        DeviceSerialLength, DeviceSerial);
+
+    // Power Off 10 seconds after last activity
+    PowerOff.Blink(1000, POWER_OFF_TIMEOUT, 1, LOW);
+#endif
+
 #ifdef ENABLE_UI
     Serial.println();
 #endif
