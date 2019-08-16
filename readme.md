@@ -17,6 +17,15 @@ Fortunately it was easy to design such a lock. The outcome is the "StickLock" (s
 
 **Note:** Additional information can be found at https://www.min.at/prinz/sticklock
 
+<font color="red">Note: As some commenter's pointed out StickLock might have more vulnerabilities then a normal, physical lock. This is only partially true and the section “[Critics, comments and frequently asked questions](#critics-comments-and-frequently-asked-questions)” further down the page might help to put this blog post into the right context.</font>
+
+_History_
+
+<2019-06-05> First version
+
+<2019-08-15> Implemented new key type "Serial Number Only"
+
+
 ## Design
 
 ### Goals
@@ -117,9 +126,10 @@ in file `global.h`. **THIS IS NOT RECOMMENDED!**
 
 #### Keys
 
-SL supports three different key types: HOTP-6, HOTP-8 and STATIC. They are configured in `config.h`. Each key has to be specified with its length (max 255 bytes) and its key bytes as described below.
+SL supports four different key types: HOTP-6, HOTP-8, STATIC and USB-Serial-Only. They are configured in `config.h`. Each key has to be specified with its length (max 255 bytes) and its key bytes as described below.
 
 For additional security a key can be combined with a device serial number. Most USB devices (not all) provide unique (some devices don't) serial number information. SL will only accept the key from a device with matching serial number. If a key is not bound to a serial number then any device can be used to provide the key.
+It is also possible to use only the USB serial number without any additional key bytes.
 
 ```c
 // Key 1 - 20 bytes long
@@ -142,6 +152,14 @@ const PROGMEM uint8_t key2[key2_length] = {
 // this key will be accepted from any device.
 static const uint8_t serial2_length = 0;
 const PROGMEM uint8_t serial2[serial4_length] = {};
+
+// Key 3 - USB Serial NUmber only
+static const uint8_t key3_length = 0;
+const PROGMEM uint8_t key3[key3_length] = {};
+// Serial number for key 3 - 10 bytes long.
+// No other key bytes are specified.
+const PROGMEM uint8_t serial3[serial3_length] = {
+    0x31, 0x00, 0x32, 0x00, 0x33, 0x00, 0x34, 0x00, 0x35, 0x00 };
 ```
 In `config.h` all configured keys and serial numbers are then combined into the key structure `config_keys` as shown below:
 ```c
@@ -158,6 +176,12 @@ const Key_t config_keys[] PROGMEM = {
     { KFS_ENABLED | KFT_STATIC,
         serial2_length, serial2,
         key2_length, key2,
+        COUNT_ZERO, 0
+    },
+    // key 3
+    { KFS_ENABLED | KFT_SERIAL_NUMBER,
+        serial3_length, serial3,
+        key3_length, key3,
         COUNT_ZERO, 0
     }
 };
@@ -190,7 +214,7 @@ Bit
       00: Static key
       01: HOTP key length 6
       10: HOTP key length 8
-      11: unused
+      11: USB Serial Number only
  7-3: unused
 ```
 
@@ -229,6 +253,13 @@ Key 2 in the samples above defines a static key with a length of four bytes. The
 
 HOTP is defined in [RFC-4226](https://tools.ietf.org/html/rfc4226#section-5.4)
 
+#### USB Serial Number Only Keys
+
+These keys consist only of the USB serial number. As soon a supported USB HID device is connected to SL its USB serial number is read. In case it matches an USB Serial Number Only key, SL immediately unlocks. No further user interaction (e.g. pressing buttons on the connected device) is needed.
+
+<font color="red">Note: USB serial numbers are NOT required per the standard and also they don't need to be unique. So be careful when using these key type and check the used USB device. Even when using USB devices with good, unique USB serial numbers (like the YubiKeys) there can be other problems. On the YubiKeys for example the internal USB serial number is printed on their case in human readable and QR code form - and this is probably not what you want.</font>
+
+
 ### Operation
 
 StickLock indicates its state using a red, green and blue led:
@@ -251,7 +282,7 @@ SL will power off itself via the used POLOLU switch after an idle timeout of 1 m
 
 SL does not include any form of mechanical actuators to perform the actual unlock actions as this depends highly on where SL will be used. Instead SL signals via J3 (SUP) and J4 (UNL) when a supported device is inserted* and when a valid key is detected.
 
-**Note**: When supported device checks are disabled (**NOT RECOMENDED**) this signal will always be high.
+**Note**: When supported device checks are disabled (**NOT RECOMMENDED**) this signal will always be high.
 
 Signals SUP and UNL should be routed via different paths to actuators for additional security. Also unlock action should only be performed when both signals are high.
 
@@ -306,7 +337,43 @@ SL can handle multiple keys (as long as flash is available). When a key is provi
 
 ### Memory consumption
 
-Enabling additional options in `global.h` like serial user interface or debugging output not only providers more attack surface but also reduces available memory resources significantly. These options are normally not used for standard operation. Ensure that after compiling at least 730 bytes are available for local variables (shown in console output). Otherwise you might notice wrong behaviour (e.g. long 64 byte static keys might no longer be recognized). Below 700 bytes no key type will work!
+Enabling additional options in `global.h` like serial user interface or debugging output not only providers more attack surface but also reduces available memory resources significantly. These options are normally not used for standard operation. <font color="red">Ensure that after compiling at least 730 bytes are available for local variables (shown in console output). Otherwise you might notice wrong behaviour (e.g. long 64 byte static keys might no longer be recognized). Below 700 bytes no key type will work!</font>
+
+## Todo’s, ideas
+
+* battery monitor and warning on low voltage when SL powered by batteries
+* support for rechargeable batteries and charger circuit
+* additional over/under voltage/power protection
+* optional activity logging on serial port or memory (flash, SD-Card)
+* developing a protocol for the two unlock signals understood by the unlock actuator instead of just setting both signals to High for unlock
+* developing a lock picking safe unlock actuator
+
+## Critics, comments and frequently asked questions
+
+This section tries to give some answers and thoughts on questions and comments I received about SL. Feel free to use the comment function here or at [Hackaday](https://hackaday.com/2019/07/19/use-a-digital-key-to-deter-lockpicking/).
+
+* <font color="red">StickLock is not a WHOLE lock!!!</font>
+    * compared to a physical lock where authorization logic (the bolts and springs matching the key) and unlock actuator (the cylinder and latch) are combined into one unit, StickLock represents only the authorization part. The two StickLock signals Device-Valid and Unlock tell the unlock actuator when to release the lock. That means while SL could be secure the used actuator could still be vulnerable to “paperclip” hacks. In that sense its wrong to state SL is more secure then an ordinary lock.
+* <font color="red">Why not use some wireless technology like NFC?</font>
+    * Because sticking a physical key into a lock simply provides less attack surface compared to wireless technology which could be (theoretically) sniffed.
+* <font color="red">USB is a dumb idea!!!</font>
+    * Because of what? An USB token has the same usage vulnerabilities like a classic key. It can be lost or stolen. Most of the standard physical locks used in lockers (except high security lock types which costs far more then most whole lockers) can be easily unlocked (assuming someone has the right lock picking tools and knowledge). Using USB as a lock could be more secure. Using a maximum of 64 bytes key IS ~~almost~~ unbreakable with trying all possible combinations. Sure someone could use a UsbKill on StickLock but all he gets is a dead lock (much the same like pressing StickLocks clear switch).
+    * Used correctly StickLock is almost (as nothing is) unbreakable
+        * enclosed in a sealed, resin filled steel case with screw terminals for LEDs, switches and power
+        * installed inside steel locker not directly attached to locker wall
+        * signal lines (Valid Device, and Unlock) must both be High to trigger unlock actuator (not specified, could be anything and is not part of this project)
+        * both unlock signal lines must be routed via different physical paths inside locker to unlock actuator
+        * external power supply to StickLock could be another attack surface
+            * over power will destroy StickLock rendering it useless
+            * lowering power supply provoking a BrownOut where SL could behave undefined must be handled by SLs power stabilizer and processor reset circuit
+* <font color="red">Using USB provides more attack surface!!!</font>
+    * How? StickLock just understands a very limited set of the USB HID protocol everything else is ignored. All tests so far have shown that it is not possible to trick StickLock to set both unlock signal lines to High by either physically overloading/destroying the USB port or trying to bring it into an undefined state by introducing invalid USB protocol responses. Either the Arduino resets or hangs (both do not trigger an unlock)
+* <font color="red">SL’s fallback of just being dead and keeping things locked on clear-switch or when destroyed as described above is a bad idea!!!</font>
+    * This depends on what should be locked. I personally think its better SL stays locked in any failure case and I also would argue against a second non SL locking mechanism as described above at the clear-switch even if that means I must use a welding torch to get back my locked things. I agree there are no locks which could not be opened but the longer the time is it takes to break into it the better it is.
+
+## Resources
+
+The Arduino IDE code for StickLock can be found on [GitHub](https://github.com/rprinz08/StickLock) and the corresponding blog post [here](https://www.min.at/prinz/sticklock).
 
 ## License
 
