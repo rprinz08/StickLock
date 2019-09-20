@@ -22,8 +22,8 @@ Fortunately it was easy to design such a lock. The outcome is the "StickLock" (s
 _History_
 
 <2019-06-05> First version
-
 <2019-08-15> Implemented new key type "Serial Number Only"
+<2019-09-13> Notes on battery usage and low voltage monitor
 
 
 ## Design
@@ -78,6 +78,22 @@ The prototype design uses cheap ready available components:
 Total amount of all components is about 50.00 EUR.
 
 The schematic shows that the StickLock is very easy to build.
+
+When SL is used with batteries some sort of battery monitor is required. Included in this design is a simple monitor which warns (using an orange blink LED) when the 9V battery becomes low (~ < 7.3V).
+
+The following measurements might help to select the another one for your use case:
+
+| Component | Power |
+|-----------|-------|
+| Simple Voltage Monitor | 4µA |
+| Polollu Switch | 28µA |
+| Arduino + USB Shield (standby, no device attached) | 56mA |
+| Arduino + USB Shield (standby, YubiKey attached) | 80mA |
+| Arduino + USB Shield (unlock with YubiKey) | 90mA |
+
+So in idle standby mode, SL uses ~32µA. The unlock process using a YubiKey takes on average 10 seconds and draws ~90mA. With a simple standard 9V block (~600mA) lots of unlocking action can be performed for a long time (although a 9V block is not the preferred battery type but easily available and cheap).
+
+Note: To not always change the battery when low, a better solution would be to use a rechargeable battery with additional charger circuit. This might be included in an updated design.
 
 [![StickLock](./doc/StickLock-schematic.png)](./doc/StickLock-schematic.pdf)
 
